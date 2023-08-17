@@ -100,6 +100,17 @@ func (block *Block) SetHash() {
 	block.Hash = hash[:]
 }
 
+func (pow *ProofOfWork) Validate() (valid bool) {
+	var hashAsInt big.Int
+
+	data := pow.prepareData(pow.block.Nonce)
+	hash := sha256.Sum256(data)
+	hashAsInt.SetBytes(hash[:])
+
+	valid = hashAsInt.Cmp(pow.target) == -1
+	return valid
+}
+
 func main() {
 	blockchain := NewBlockchain()
 
@@ -112,6 +123,8 @@ func main() {
 		fmt.Printf("Time: %d\n", block.Timestamp)
 		fmt.Printf("Data: %s\n", block.Data)
 		fmt.Printf("Hash: %x\n", block.Hash)
+		pow := NewProofOfWork(block)
+		fmt.Printf("PoWo: %s\n", strconv.FormatBool(pow.Validate()))
 		fmt.Println()
 	}
 }
