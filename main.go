@@ -16,7 +16,9 @@ func main() {
 	blockchain.AddBlock("Send 25 more BTC to Nick Szabo")
 	blockchain.AddBlock("Send 12 more BTC to Luke Jones")
 
-	for _, block := range blockchain.blocks {
+	it := blockchain.Iterator()
+	for {
+		block := it.Next()
 		fmt.Printf("Prev: %x\n", block.PrevBlockHash)
 		fmt.Printf("Time: %d\n", block.Timestamp)
 		fmt.Printf("Data: %s\n", block.Data)
@@ -24,5 +26,9 @@ func main() {
 		pow := NewProofOfWork(block)
 		fmt.Printf("PoWo: %s\n", strconv.FormatBool(pow.Validate()))
 		fmt.Println()
+
+		if len(block.PrevBlockHash) == 0 {
+			break
+		}
 	}
 }
