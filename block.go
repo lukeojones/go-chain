@@ -3,6 +3,7 @@ package main
 import (
 	"bytes"
 	"crypto/sha256"
+	"encoding/gob"
 	"strconv"
 	"time"
 )
@@ -13,6 +14,26 @@ type Block struct {
 	PrevBlockHash []byte
 	Hash          []byte
 	Nonce         int
+}
+
+func (block *Block) Serialize() []byte {
+	var buffer bytes.Buffer
+	encoder := gob.NewEncoder(&buffer)
+
+	if err := encoder.Encode(block); err != nil {
+		panic("Unable to serialize Block")
+	}
+
+	return buffer.Bytes()
+}
+
+func Deserialize(data []byte) *Block {
+	var block Block
+	decoder := gob.NewDecoder(bytes.NewReader(data))
+	if err := decoder.Decode(&block); err != nil {
+		panic("Unable to deserialize data")
+	}
+	return &block
 }
 
 func (block *Block) SetHash() {
