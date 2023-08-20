@@ -39,6 +39,10 @@ func (tx *Transaction) SetId() {
 	tx.ID = sum256[:]
 }
 
+// Creates a Coinbase Transaction
+// Use a dummy input since these coins are "mined" and have no origin transaction
+// Dummy input can have arbirtrary data (like Satoshi's Chancellor data in first ever Coinbase)
+// Output contains the block reward sent straight to the recipient (miner)
 func NewCoinbaseTx(recipient, data string) *Transaction {
 	if data == "" {
 		data = fmt.Sprintf("Coinbase Reward to: %s", recipient)

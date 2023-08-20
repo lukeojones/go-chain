@@ -13,7 +13,10 @@ type CLI struct {
 }
 
 func (cli *CLI) PrintChain() {
-	it := cli.bc.Iterator()
+	// Just exec NewBlockChain here (which actually loads the thing)
+	bc := NewBlockchain()
+	defer bc.db.Close()
+	it := bc.Iterator()
 	for {
 		block := it.Next()
 		fmt.Printf("Prev: %x\n", block.PrevBlockHash)
@@ -31,6 +34,7 @@ func (cli *CLI) PrintChain() {
 }
 
 func (cli *CLI) CreateChain(address string) {
+	println("1. Creating Chain")
 	blockchain := CreateBlockchain(address)
 	blockchain.db.Close()
 	fmt.Println("Blockchain Created")

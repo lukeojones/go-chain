@@ -10,6 +10,7 @@ import (
 
 const dbFile = "blockchain.db"
 const blocksBucketName = "blocks"
+const genesisData = "Hello Blockchain!"
 
 type Blockchain struct {
 	tip []byte
@@ -38,13 +39,37 @@ func (blockchain *Blockchain) Iterator() *BlockchainIterator {
 	return &BlockchainIterator{blockchain.tip, blockchain.db}
 }
 
-func CreateBlockchain(address string) *Blockchain {
+func dbExists() bool {
 	if _, err := os.Stat(dbFile); errors.Is(err, fs.ErrNotExist) {
-		return NewBlockchain()
+		return false
 	}
-	fmt.Println("Blockchain already exists.")
-	os.Exit(1)
-	return nil
+	return true
+}
+
+func CreateBlockchain(address string) *Blockchain {
+	if dbExists() {
+		fmt.Println("Blockchain already exists.")
+		os.Exit(1)
+	}
+
+	var tip []byte
+	db, _ := bolt.Open(dbFile, 0600, nil)
+	db.Update(func(tx *bolt.Tx) error {
+		bucket := tx.Bucket([]byte(blocksBucketName))
+		if bucket != nil {
+			tip = bucket.Get([]byte("l"))
+		} else {
+			println("Creating Coinbase Tx")
+			coinbaseTx := NewCoinbaseTx(address, genesisData)
+			genesisBlock := NewGenesisBlock(coinbaseTx)
+			bucket, _ := tx.CreateBucket([]byte(blocksBucketName))
+			bucket.Put(genesisBlock.Hash, genesisBlock.Serialize())
+			bucket.Put([]byte("l"), genesisBlock.Hash)
+			tip = genesisBlock.Hash
+		}
+		return nil
+	})
+	return &Blockchain{tip, db}
 }
 
 func NewBlockchain() *Blockchain {
@@ -60,7 +85,7 @@ func NewBlockchain() *Blockchain {
 		if bucket != nil {
 			tip = bucket.Get([]byte("l"))
 		} else {
-			coinbaseTx := NewCoinbaseTx("Lukoshi", "You put da lime in di coconut")
+			coinbaseTx := NewCoinbaseTx("Lukoshi", "Hello Blockchain!")
 			genesisBlock := NewGenesisBlock(coinbaseTx)
 			bucket, _ := tx.CreateBucket([]byte(blocksBucketName))
 			bucket.Put(genesisBlock.Hash, genesisBlock.Serialize())
