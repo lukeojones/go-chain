@@ -32,18 +32,6 @@ func (blockchain *Blockchain) Iterator() *BlockchainIterator {
 	return &BlockchainIterator{blockchain.tip, blockchain.db}
 }
 
-//func (blockchain *Blockchain) AddBlock(data string) {
-//	newBlock := NewBlock(data, blockchain.tip)
-//	blockchain.db.Update(func(tx *bolt.Tx) error {
-//		bucket := tx.Bucket([]byte(blocksBucketName))
-//		bucket.Put(newBlock.Hash, newBlock.Serialize())
-//		bucket.Put([]byte("l"), newBlock.Hash)
-//		blockchain.tip = newBlock.Hash
-//
-//		return nil
-//	})
-//}
-
 func NewBlockchain() *Blockchain {
 	// Open the DB
 	//Create an update transaction
