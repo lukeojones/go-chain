@@ -3,8 +3,12 @@ package main
 import (
 	"bytes"
 	"crypto/sha256"
+	"math"
 	"math/big"
 )
+
+const difficulty = 16
+const maxNonce = math.MaxInt64
 
 type ProofOfWork struct {
 	block  *Block
