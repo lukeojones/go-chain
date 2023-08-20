@@ -1,6 +1,12 @@
 package main
 
-import "github.com/boltdb/bolt"
+import (
+	"errors"
+	"fmt"
+	"github.com/boltdb/bolt"
+	"io/fs"
+	"os"
+)
 
 const dbFile = "blockchain.db"
 const blocksBucketName = "blocks"
@@ -30,6 +36,15 @@ func (iterator *BlockchainIterator) Next() *Block {
 
 func (blockchain *Blockchain) Iterator() *BlockchainIterator {
 	return &BlockchainIterator{blockchain.tip, blockchain.db}
+}
+
+func CreateBlockchain(address string) *Blockchain {
+	if _, err := os.Stat(dbFile); errors.Is(err, fs.ErrNotExist) {
+		return NewBlockchain()
+	}
+	fmt.Println("Blockchain already exists.")
+	os.Exit(1)
+	return nil
 }
 
 func NewBlockchain() *Blockchain {

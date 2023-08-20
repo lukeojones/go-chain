@@ -58,9 +58,6 @@ func NewCoinbaseTx(recipient, data string) *Transaction {
 }
 
 func main() {
-	blockchain := NewBlockchain()
-	defer blockchain.db.Close()
-
-	cli := CLI{blockchain}
+	cli := CLI{}
 	cli.Run()
 }

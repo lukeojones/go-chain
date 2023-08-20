@@ -30,9 +30,16 @@ func (cli *CLI) PrintChain() {
 	}
 }
 
+func (cli *CLI) CreateChain(address string) {
+	blockchain := CreateBlockchain(address)
+	blockchain.db.Close()
+	fmt.Println("Blockchain Created")
+}
+
 func (cli *CLI) PrintUsage() {
 	fmt.Println("Usage:")
 	fmt.Println("  printchain - Print all the blocks of the blockchain")
+	fmt.Println("  createchain -address ADDRESS - Create a blockchain and send genesis block reward to ADDRESS")
 }
 
 func (cli *CLI) validateArgs() {
@@ -46,10 +53,17 @@ func (cli *CLI) Run() {
 	cli.validateArgs()
 
 	printChainCmd := flag.NewFlagSet("printchain", flag.ExitOnError)
+	createChainCmd := flag.NewFlagSet("createchain", flag.ExitOnError)
+	createChainAddress := createChainCmd.String("address", "", "The address to send genesis block reward to")
 
 	switch os.Args[1] {
 	case "printchain":
 		err := printChainCmd.Parse(os.Args[2:])
+		if err != nil {
+			log.Panic(err)
+		}
+	case "createchain":
+		err := createChainCmd.Parse(os.Args[2:])
 		if err != nil {
 			log.Panic(err)
 		}
@@ -60,5 +74,13 @@ func (cli *CLI) Run() {
 
 	if printChainCmd.Parsed() {
 		cli.PrintChain()
+	}
+
+	if createChainCmd.Parsed() {
+		if *createChainAddress == "" {
+			createChainCmd.Usage()
+			os.Exit(1)
+		}
+		cli.CreateChain(*createChainAddress)
 	}
 }
