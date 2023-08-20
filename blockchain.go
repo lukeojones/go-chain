@@ -32,17 +32,17 @@ func (blockchain *Blockchain) Iterator() *BlockchainIterator {
 	return &BlockchainIterator{blockchain.tip, blockchain.db}
 }
 
-func (blockchain *Blockchain) AddBlock(data string) {
-	newBlock := NewBlock(data, blockchain.tip)
-	blockchain.db.Update(func(tx *bolt.Tx) error {
-		bucket := tx.Bucket([]byte(blocksBucketName))
-		bucket.Put(newBlock.Hash, newBlock.Serialize())
-		bucket.Put([]byte("l"), newBlock.Hash)
-		blockchain.tip = newBlock.Hash
-
-		return nil
-	})
-}
+//func (blockchain *Blockchain) AddBlock(data string) {
+//	newBlock := NewBlock(data, blockchain.tip)
+//	blockchain.db.Update(func(tx *bolt.Tx) error {
+//		bucket := tx.Bucket([]byte(blocksBucketName))
+//		bucket.Put(newBlock.Hash, newBlock.Serialize())
+//		bucket.Put([]byte("l"), newBlock.Hash)
+//		blockchain.tip = newBlock.Hash
+//
+//		return nil
+//	})
+//}
 
 func NewBlockchain() *Blockchain {
 	// Open the DB
@@ -57,7 +57,8 @@ func NewBlockchain() *Blockchain {
 		if bucket != nil {
 			tip = bucket.Get([]byte("l"))
 		} else {
-			genesisBlock := NewBlock("Genesis Block", []byte{})
+			coinbaseTx := NewCoinbaseTx("Lukoshi", "You put da lime in di coconut")
+			genesisBlock := NewGenesisBlock(coinbaseTx)
 			bucket, _ := tx.CreateBucket([]byte(blocksBucketName))
 			bucket.Put(genesisBlock.Hash, genesisBlock.Serialize())
 			bucket.Put([]byte("l"), genesisBlock.Hash)
@@ -66,4 +67,8 @@ func NewBlockchain() *Blockchain {
 		return nil
 	})
 	return &Blockchain{tip, db}
+}
+
+func NewGenesisBlock(coinbaseTx *Transaction) *Block {
+	return NewBlock([]*Transaction{coinbaseTx}, []byte{})
 }

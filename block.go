@@ -4,13 +4,12 @@ import (
 	"bytes"
 	"crypto/sha256"
 	"encoding/gob"
-	"strconv"
 	"time"
 )
 
 type Block struct {
 	Timestamp     int64
-	Data          []byte
+	Transactions  []*Transaction
 	PrevBlockHash []byte
 	Hash          []byte
 	Nonce         int
@@ -27,6 +26,18 @@ func (block *Block) Serialize() []byte {
 	return buffer.Bytes()
 }
 
+// HashTransactions Produce a single hash representing all transactions in the Block
+// The final hash is the hash of the concatenated transaction hashes (IDs).
+// NB: Bitcoin is more sophisticated than this and uses Merkle Trees.
+func (block *Block) HashTransactions() []byte {
+	var txHashes [][]byte
+	for _, tx := range block.Transactions {
+		txHashes = append(txHashes, tx.ID)
+	}
+	combinedTxHash := sha256.Sum256(bytes.Join(txHashes, []byte{}))
+	return combinedTxHash[:]
+}
+
 func DeserializeBlock(data []byte) *Block {
 	var block Block
 	decoder := gob.NewDecoder(bytes.NewReader(data))
@@ -36,17 +47,10 @@ func DeserializeBlock(data []byte) *Block {
 	return &block
 }
 
-func (block *Block) SetHash() {
-	timestamp := []byte(strconv.FormatInt(block.Timestamp, 10))
-	contents := bytes.Join([][]byte{timestamp, block.Data, block.PrevBlockHash}, []byte{})
-	hash := sha256.Sum256(contents)
-	block.Hash = hash[:]
-}
-
-func NewBlock(data string, prevBlockHash []byte) *Block {
+func NewBlock(transactions []*Transaction, prevBlockHash []byte) *Block {
 	block := &Block{
 		Timestamp:     time.Now().Unix(),
-		Data:          []byte(data),
+		Transactions:  transactions,
 		PrevBlockHash: prevBlockHash,
 		Hash:          []byte{},
 		Nonce:         0,

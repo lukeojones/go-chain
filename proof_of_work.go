@@ -18,7 +18,7 @@ type ProofOfWork struct {
 func (pow *ProofOfWork) prepareData(nonce int) []byte {
 	data := bytes.Join([][]byte{
 		Int64ToBytes(pow.block.Timestamp),
-		pow.block.Data,
+		pow.block.HashTransactions(),
 		pow.block.PrevBlockHash,
 		Int64ToBytes(int64(nonce)),
 		Int64ToBytes(int64(difficulty)),
