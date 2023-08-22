@@ -100,3 +100,16 @@ func NewBlockchain() *Blockchain {
 func NewGenesisBlock(coinbaseTx *Transaction) *Block {
 	return NewBlock([]*Transaction{coinbaseTx}, []byte{})
 }
+
+func (blockchain *Blockchain) FindUnspentTxs(address string) {
+	//for each block
+	//  for each tx in the block
+	//    for each input in the tx (for our address) - only it not coinbase tx
+	//      get the output off the input and add OUTPUT INDEX to spentTXOS
+
+	//    for each output in the tx
+	//      see if the index of the output matches any of the output index stored in spentTXOs for this tx
+	//      if the output is for our address add to unspent txos
+
+	//return unspent txos
+}
