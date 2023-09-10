@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/hex"
 	"errors"
 	"fmt"
 	"github.com/boltdb/bolt"
@@ -101,15 +102,75 @@ func NewGenesisBlock(coinbaseTx *Transaction) *Block {
 	return NewBlock([]*Transaction{coinbaseTx}, []byte{})
 }
 
-func (blockchain *Blockchain) FindUnspentTxs(address string) {
-	//for each block
-	//  for each tx in the block
-	//    for each input in the tx (for our address) - only it not coinbase tx
-	//      get the output off the input and add OUTPUT INDEX to spentTXOS
+func containsIndex(indexToFind int, indices []int) bool {
+	if indices == nil {
+		return false
+	}
+	for _, index := range indices {
+		if index == indexToFind {
+			return true
+		}
+	}
+	return false
+}
 
-	//    for each output in the tx
-	//      see if the index of the output matches any of the output index stored in spentTXOs for this tx
-	//      if the output is for our address add to unspent txos
+func (blockchain *Blockchain) FindTxsWithUnspentOutputs(address string) []Transaction {
+	var txsWithUtxos []Transaction
+	spentTxos := make(map[string][]int) // txid -> []offset
 
-	//return unspent txos
+	// Blocks
+	bci := blockchain.Iterator()
+	for {
+		block := bci.Next()
+
+		//Transactions
+		for _, tx := range block.Transactions {
+			txID := hex.EncodeToString(tx.ID)
+
+			// Transaction Outputs
+			for txoIndex, txo := range tx.Outputs {
+				spentOutputIndices := spentTxos[txID]
+				if containsIndex(txoIndex, spentOutputIndices) {
+					continue
+				}
+				//if spentOutputIndices != nil {
+				//	for _, indexOfSpentOutput := range spentOutputIndices {
+				//		if txoIndex == indexOfSpentOutput {
+				//			// go to next transaction output
+				//		}
+				//	}
+				//}
+
+				// if here means there is a transaction output that isn't spent yet
+				// so we need to check if it for our address/key
+				if txo.CanBeUnlockedWith(address) {
+					txsWithUtxos = append(txsWithUtxos, *tx)
+				}
+			}
+
+			// now inspect the inputs of the block to mark spent outputs
+			// coinbase can be ignored because they reference no inputs
+			if tx.IsCoinbase() == false {
+				for _, input := range tx.Inputs {
+					if input.CanUnlockOutputWith(address) {
+						outputTxID := hex.EncodeToString(input.TxOutputID)
+						spentTxos[outputTxID] = append(spentTxos[outputTxID], input.TxOutputIndex)
+					}
+				}
+			}
+		}
+	}
+	// Loop backwards (newest first) through the blockchain
+	// 		For every transaction (tx) in the block
+	// 			For every transaction output (txo) in the tx
+	// 			See if it has been spent (check map of spent txns by txid)
+	// 			if it has,
+	//				break
+	// 			if it hasn't, check if the txo is unlockable by address/key string
+	// 				if it is unlockable by the address, add to unspent txo (utxo) array
+	// 		For every transaction input (txi) in the tx
+	// 		Exclude coinbases
+	// 		If the txi unlocks coins sent to address string
+	// 			Add txo index to map (by txid) since you already have txid in the map key it's only necessary to store the tx offset
+
 }

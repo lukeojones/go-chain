@@ -15,7 +15,7 @@ type Transaction struct {
 }
 
 type TxInput struct {
-	TxID          []byte
+	TxOutputID    []byte
 	TxOutputIndex int
 	ScriptSig     string
 }
@@ -43,6 +43,10 @@ func (tx *Transaction) SetId() {
 
 	sum256 := sha256.Sum256(encoded.Bytes())
 	tx.ID = sum256[:]
+}
+
+func (tx *Transaction) IsCoinbase() bool {
+	//todo - to implement
 }
 
 // NewCoinbaseTx Creates a Coinbase Transaction
