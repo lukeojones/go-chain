@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/boltdb/bolt"
+	"golang.org/x/exp/slices"
 	"io/fs"
 	"os"
 )
@@ -55,7 +56,7 @@ func CreateBlockchain(address string) *Blockchain {
 
 	var tip []byte
 	db, _ := bolt.Open(dbFile, 0600, nil)
-	db.Update(func(tx *bolt.Tx) error {
+	err := db.Update(func(tx *bolt.Tx) error {
 		bucket := tx.Bucket([]byte(blocksBucketName))
 		if bucket != nil {
 			tip = bucket.Get([]byte("l"))
@@ -63,17 +64,33 @@ func CreateBlockchain(address string) *Blockchain {
 			println("Creating Coinbase Tx")
 			coinbaseTx := NewCoinbaseTx(address, genesisData)
 			genesisBlock := NewGenesisBlock(coinbaseTx)
-			bucket, _ := tx.CreateBucket([]byte(blocksBucketName))
-			bucket.Put(genesisBlock.Hash, genesisBlock.Serialize())
-			bucket.Put([]byte("l"), genesisBlock.Hash)
+			bucket, err := tx.CreateBucket([]byte(blocksBucketName))
+
+			if err != nil {
+				panic(err)
+			}
+
+			err = bucket.Put(genesisBlock.Hash, genesisBlock.Serialize())
+			if err != nil {
+				panic(err)
+			}
+
+			err = bucket.Put([]byte("l"), genesisBlock.Hash)
+			if err != nil {
+				panic(err)
+			}
+
 			tip = genesisBlock.Hash
 		}
 		return nil
 	})
+	if err != nil {
+		panic(err)
+	}
 	return &Blockchain{tip, db}
 }
 
-func NewBlockchain() *Blockchain {
+func NewBlockchain(address string) *Blockchain {
 	// Open the DB
 	//Create an update transaction
 	//Read from the block bucket
@@ -86,7 +103,7 @@ func NewBlockchain() *Blockchain {
 		if bucket != nil {
 			tip = bucket.Get([]byte("l"))
 		} else {
-			coinbaseTx := NewCoinbaseTx("Lukoshi", "Hello Blockchain!")
+			coinbaseTx := NewCoinbaseTx(address, "Hello Blockchain!")
 			genesisBlock := NewGenesisBlock(coinbaseTx)
 			bucket, _ := tx.CreateBucket([]byte(blocksBucketName))
 			bucket.Put(genesisBlock.Hash, genesisBlock.Serialize())
@@ -100,18 +117,6 @@ func NewBlockchain() *Blockchain {
 
 func NewGenesisBlock(coinbaseTx *Transaction) *Block {
 	return NewBlock([]*Transaction{coinbaseTx}, []byte{})
-}
-
-func containsIndex(indexToFind int, indices []int) bool {
-	if indices == nil {
-		return false
-	}
-	for _, index := range indices {
-		if index == indexToFind {
-			return true
-		}
-	}
-	return false
 }
 
 func (blockchain *Blockchain) FindTxsWithUnspentOutputs(address string) []Transaction {
@@ -130,16 +135,9 @@ func (blockchain *Blockchain) FindTxsWithUnspentOutputs(address string) []Transa
 			// Transaction Outputs
 			for txoIndex, txo := range tx.Outputs {
 				spentOutputIndices := spentTxos[txID]
-				if containsIndex(txoIndex, spentOutputIndices) {
+				if slices.Contains(spentOutputIndices, txoIndex) {
 					continue
 				}
-				//if spentOutputIndices != nil {
-				//	for _, indexOfSpentOutput := range spentOutputIndices {
-				//		if txoIndex == indexOfSpentOutput {
-				//			// go to next transaction output
-				//		}
-				//	}
-				//}
 
 				// if here means there is a transaction output that isn't spent yet
 				// so we need to check if it for our address/key
@@ -159,18 +157,23 @@ func (blockchain *Blockchain) FindTxsWithUnspentOutputs(address string) []Transa
 				}
 			}
 		}
-	}
-	// Loop backwards (newest first) through the blockchain
-	// 		For every transaction (tx) in the block
-	// 			For every transaction output (txo) in the tx
-	// 			See if it has been spent (check map of spent txns by txid)
-	// 			if it has,
-	//				break
-	// 			if it hasn't, check if the txo is unlockable by address/key string
-	// 				if it is unlockable by the address, add to unspent txo (utxo) array
-	// 		For every transaction input (txi) in the tx
-	// 		Exclude coinbases
-	// 		If the txi unlocks coins sent to address string
-	// 			Add txo index to map (by txid) since you already have txid in the map key it's only necessary to store the tx offset
 
+		if len(block.PrevBlockHash) == 0 {
+			break
+		}
+	}
+	return txsWithUtxos
+}
+
+func (blockchain *Blockchain) FindUtxos(address string) []TxOutput {
+	txsWithUtxos := blockchain.FindTxsWithUnspentOutputs(address)
+	var utxos []TxOutput
+	for _, tx := range txsWithUtxos {
+		for _, txo := range tx.Outputs {
+			if txo.CanBeUnlockedWith(address) {
+				utxos = append(utxos, txo)
+			}
+		}
+	}
+	return utxos
 }

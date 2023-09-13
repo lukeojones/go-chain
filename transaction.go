@@ -45,8 +45,8 @@ func (tx *Transaction) SetId() {
 	tx.ID = sum256[:]
 }
 
-func (tx *Transaction) IsCoinbase() bool {
-	//todo - to implement
+func (tx Transaction) IsCoinbase() bool {
+	return len(tx.Inputs) == 1 && len(tx.Inputs[0].TxOutputID) == 0 && tx.Inputs[0].TxOutputIndex == -1
 }
 
 // NewCoinbaseTx Creates a Coinbase Transaction

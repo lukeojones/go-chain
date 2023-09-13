@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"crypto/sha256"
 	"encoding/gob"
+	"fmt"
 	"time"
 )
 
@@ -42,6 +43,7 @@ func DeserializeBlock(data []byte) *Block {
 	var block Block
 	decoder := gob.NewDecoder(bytes.NewReader(data))
 	if err := decoder.Decode(&block); err != nil {
+		fmt.Println(err)
 		panic("Unable to deserialize data")
 	}
 	return &block

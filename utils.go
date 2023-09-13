@@ -14,3 +14,15 @@ func Int64ToBytes(i int64) []byte {
 	}
 	return buf.Bytes()
 }
+
+//func Contains(toFind int, toSearch []int) bool {
+//	if toSearch == nil {
+//		return false
+//	}
+//	for _, index := range toSearch {
+//		if index == toFind {
+//			return true
+//		}
+//	}
+//	return false
+//}
