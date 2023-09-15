@@ -177,3 +177,25 @@ func (blockchain *Blockchain) FindUtxos(address string) []TxOutput {
 	}
 	return utxos
 }
+
+func (blockchain *Blockchain) FindSpendableOutputs(address string, amount int) (int, map[string][]int) {
+	unspentTxs := blockchain.FindTxsWithUnspentOutputs(address)
+	spendableOutputs := make(map[string][]int)
+	acc := 0
+
+	for _, tx := range unspentTxs {
+		txID := hex.EncodeToString(tx.ID)
+		for offset, output := range tx.Outputs {
+			if output.CanBeUnlockedWith(address) && acc < amount {
+				acc = acc + output.Value
+				spendableOutputs[txID] = append(spendableOutputs[txID], offset)
+
+				if acc > amount {
+					return amount, spendableOutputs
+				}
+			}
+		}
+	}
+
+	return acc, spendableOutputs
+}

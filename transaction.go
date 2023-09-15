@@ -70,3 +70,7 @@ func NewCoinbaseTx(recipient, data string) *Transaction {
 	tx.SetId()
 	return &tx
 }
+
+func NewUtxoTransaction(from, to string, amount int, bc *Blockchain) *Transaction {
+	return nil
+}
