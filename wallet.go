@@ -30,10 +30,10 @@ type WalletData struct {
 }
 
 type Wallets struct {
-	Wallets map[string]*WalletData
+	WalletDatas map[string]*WalletData
 }
 
-func (ws Wallets) LoadFromFile() error {
+func (ws *Wallets) LoadFromFile() error {
 	if _, err := os.Stat(walletFile); os.IsNotExist(err) {
 		return err
 	}
@@ -50,7 +50,7 @@ func (ws Wallets) LoadFromFile() error {
 	if err != nil {
 		return err
 	}
-	ws.Wallets = wallets.Wallets
+	ws.WalletDatas = wallets.WalletDatas
 	return nil
 }
 
@@ -69,20 +69,20 @@ func (ws Wallets) SaveToFile() {
 }
 
 func (ws Wallets) GetWallet(address string) Wallet {
-	walletData := *ws.Wallets[address]
+	walletData := *ws.WalletDatas[address]
 	return *walletData.GetWallet()
 }
 
 func (ws Wallets) CreateWallet() string {
 	walletData := NewWalletData()
 	address := fmt.Sprintf("%s", walletData.GetWallet().GetAddress())
-	ws.Wallets[address] = walletData
+	ws.WalletDatas[address] = walletData
 	return address
 }
 
 func NewWallets() (*Wallets, error) {
 	wallets := Wallets{}
-	wallets.Wallets = make(map[string]*WalletData)
+	wallets.WalletDatas = make(map[string]*WalletData)
 
 	err := wallets.LoadFromFile()
 	return &wallets, err
