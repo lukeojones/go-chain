@@ -77,8 +77,9 @@ func NewUtxoTransaction(from, to string, amount int, blockchain *Blockchain) *Tr
 	var outputs []TxOutput
 
 	available, spendableOutputs := blockchain.FindSpendableOutputs(from, amount)
+	fmt.Printf("Found available funds of [%d] in [%s]\n", available, from)
 	if available < amount {
-		log.Panic("ERRORL Not enough funds!")
+		log.Panic("ERROR Not enough funds!")
 	}
 
 	for txID, outputIndices := range spendableOutputs { //outputs are offsets here (since we have the txID)
@@ -94,12 +95,14 @@ func NewUtxoTransaction(from, to string, amount int, blockchain *Blockchain) *Tr
 	}
 
 	// Build the outputs (one to receiver and one to sender as change)
+	fmt.Printf("Creating main txo [%d to %s]\n", amount, to)
 	outputs = append(outputs, TxOutput{
 		Value:        amount,
 		ScriptPubKey: to,
 	})
 
 	if available > amount {
+		fmt.Printf("Creating change txo [%d to %s]\n", available-amount, from)
 		outputs = append(outputs, TxOutput{
 			Value:        available - amount,
 			ScriptPubKey: from,

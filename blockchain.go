@@ -214,8 +214,8 @@ func (blockchain *Blockchain) FindSpendableOutputs(address string, amount int) (
 				acc = acc + output.Value
 				spendableOutputs[txID] = append(spendableOutputs[txID], offset)
 
-				if acc > amount {
-					return amount, spendableOutputs
+				if acc >= amount {
+					return acc, spendableOutputs
 				}
 			}
 		}
