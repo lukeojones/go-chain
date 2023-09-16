@@ -7,6 +7,7 @@ import (
 	"github.com/boltdb/bolt"
 	"golang.org/x/exp/slices"
 	"io/fs"
+	"log"
 	"os"
 )
 
@@ -39,6 +40,34 @@ func (iterator *BlockchainIterator) Next() *Block {
 
 func (blockchain *Blockchain) Iterator() *BlockchainIterator {
 	return &BlockchainIterator{blockchain.tip, blockchain.db}
+}
+
+func (blockchain *Blockchain) MineBlock(transactions []*Transaction) {
+	var lastHash []byte
+	err := blockchain.db.View(func(tx *bolt.Tx) error {
+		bucket := tx.Bucket([]byte(blocksBucketName))
+		lastHash = bucket.Get([]byte("l"))
+		return nil
+	})
+
+	if err != nil {
+		log.Panic(err)
+	}
+
+	newBlock := NewBlock(transactions, lastHash)
+	blockchain.db.Update(func(tx *bolt.Tx) error {
+		bucket := tx.Bucket([]byte(blocksBucketName))
+		err = bucket.Put(newBlock.Hash, newBlock.Serialize())
+		if err != nil {
+			log.Panic(err)
+		}
+		err = bucket.Put([]byte("l"), newBlock.Hash)
+		if err != nil {
+			log.Panic(err)
+		}
+		blockchain.tip = newBlock.Hash
+		return nil
+	})
 }
 
 func dbExists() bool {
@@ -91,11 +120,6 @@ func CreateBlockchain(address string) *Blockchain {
 }
 
 func NewBlockchain(address string) *Blockchain {
-	// Open the DB
-	//Create an update transaction
-	//Read from the block bucket
-	//If bucket exists, read last hash ("l") value and assign to tip
-	//If not exists, create bucket, create genesis block, put genesis block, put genesis hash @ l and assign to tip
 	var tip []byte
 	db, _ := bolt.Open(dbFile, 0600, nil)
 	db.Update(func(tx *bolt.Tx) error {
