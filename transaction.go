@@ -15,25 +15,6 @@ type Transaction struct {
 	Outputs []TxOutput
 }
 
-type TxInput struct {
-	TxOutputID    []byte
-	TxOutputIndex int
-	ScriptSig     string
-}
-
-func (in *TxInput) CanUnlockOutputWith(unlockingData string) bool {
-	return in.ScriptSig == unlockingData
-}
-
-type TxOutput struct {
-	Value        int
-	ScriptPubKey string
-}
-
-func (out *TxOutput) CanBeUnlockedWith(unlockingData string) bool {
-	return out.ScriptPubKey == unlockingData
-}
-
 func (tx *Transaction) SetId() {
 	var encoded bytes.Buffer
 	encoder := gob.NewEncoder(&encoded)
@@ -59,13 +40,14 @@ func NewCoinbaseTx(recipient, data string) *Transaction {
 		data = fmt.Sprintf("Coinbase Reward to: %s", recipient)
 	}
 
-	dummyTxInput := TxInput{[]byte{}, -1, data}
-	output := TxOutput{blockSubsidy, recipient}
+	dummyTxInput := TxInput{[]byte{}, -1, nil, []byte(data)}
+	//output := TxOutput{blockSubsidy, recipient}
+	output := NewTXOutput(blockSubsidy, recipient)
 
 	tx := Transaction{
 		ID:      nil,
 		Inputs:  []TxInput{dummyTxInput},
-		Outputs: []TxOutput{output},
+		Outputs: []TxOutput{*output},
 	}
 
 	tx.SetId()
@@ -76,7 +58,14 @@ func NewUtxoTransaction(from, to string, amount int, blockchain *Blockchain) *Tr
 	var inputs []TxInput
 	var outputs []TxOutput
 
-	available, spendableOutputs := blockchain.FindSpendableOutputs(from, amount)
+	wallets, err := NewWallets()
+	if err != nil {
+		log.Panic(err)
+	}
+
+	wallet := wallets.GetWallet(from)
+	pubKeyHash := HashPubKey(wallet.PublicKey)
+	available, spendableOutputs := blockchain.FindSpendableOutputs(pubKeyHash, amount)
 	fmt.Printf("Found available funds of [%d] in [%s]\n", available, from)
 	if available < amount {
 		log.Panic("ERROR Not enough funds!")
@@ -88,7 +77,8 @@ func NewUtxoTransaction(from, to string, amount int, blockchain *Blockchain) *Tr
 			input := TxInput{
 				TxOutputID:    txID,
 				TxOutputIndex: outputIndex,
-				ScriptSig:     from,
+				Signature:     nil,
+				PubKey:        wallet.PublicKey,
 			}
 			inputs = append(inputs, input)
 		}
@@ -96,17 +86,11 @@ func NewUtxoTransaction(from, to string, amount int, blockchain *Blockchain) *Tr
 
 	// Build the outputs (one to receiver and one to sender as change)
 	fmt.Printf("Creating main txo [%d to %s]\n", amount, to)
-	outputs = append(outputs, TxOutput{
-		Value:        amount,
-		ScriptPubKey: to,
-	})
+	outputs = append(outputs, *NewTXOutput(amount, to))
 
 	if available > amount {
 		fmt.Printf("Creating change txo [%d to %s]\n", available-amount, from)
-		outputs = append(outputs, TxOutput{
-			Value:        available - amount,
-			ScriptPubKey: from,
-		})
+		outputs = append(outputs, *NewTXOutput(available-amount, from))
 	}
 
 	tx := Transaction{

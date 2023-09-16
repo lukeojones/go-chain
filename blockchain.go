@@ -143,7 +143,7 @@ func NewGenesisBlock(coinbaseTx *Transaction) *Block {
 	return NewBlock([]*Transaction{coinbaseTx}, []byte{})
 }
 
-func (blockchain *Blockchain) FindTxsWithUnspentOutputs(address string) []Transaction {
+func (blockchain *Blockchain) FindTxsWithUnspentOutputs(pubKeyHash []byte) []Transaction {
 	var txsWithUtxos []Transaction
 	spentTxos := make(map[string][]int) // txid -> []offset
 
@@ -165,7 +165,7 @@ func (blockchain *Blockchain) FindTxsWithUnspentOutputs(address string) []Transa
 
 				// if here means there is a transaction output that isn't spent yet
 				// so we need to check if it for our address/key
-				if txo.CanBeUnlockedWith(address) {
+				if txo.IsLockedWithKey(pubKeyHash) {
 					txsWithUtxos = append(txsWithUtxos, *tx)
 				}
 			}
@@ -174,7 +174,7 @@ func (blockchain *Blockchain) FindTxsWithUnspentOutputs(address string) []Transa
 			// coinbase can be ignored because they reference no inputs
 			if tx.IsCoinbase() == false {
 				for _, input := range tx.Inputs {
-					if input.CanUnlockOutputWith(address) {
+					if input.UsesKey(pubKeyHash) {
 						outputTxID := hex.EncodeToString(input.TxOutputID)
 						spentTxos[outputTxID] = append(spentTxos[outputTxID], input.TxOutputIndex)
 					}
@@ -189,12 +189,12 @@ func (blockchain *Blockchain) FindTxsWithUnspentOutputs(address string) []Transa
 	return txsWithUtxos
 }
 
-func (blockchain *Blockchain) FindUtxos(address string) []TxOutput {
-	txsWithUtxos := blockchain.FindTxsWithUnspentOutputs(address)
+func (blockchain *Blockchain) FindUtxos(pubKeyHash []byte) []TxOutput {
+	txsWithUtxos := blockchain.FindTxsWithUnspentOutputs(pubKeyHash)
 	var utxos []TxOutput
 	for _, tx := range txsWithUtxos {
 		for _, txo := range tx.Outputs {
-			if txo.CanBeUnlockedWith(address) {
+			if txo.IsLockedWithKey(pubKeyHash) {
 				utxos = append(utxos, txo)
 			}
 		}
@@ -202,15 +202,15 @@ func (blockchain *Blockchain) FindUtxos(address string) []TxOutput {
 	return utxos
 }
 
-func (blockchain *Blockchain) FindSpendableOutputs(address string, amount int) (int, map[string][]int) {
-	unspentTxs := blockchain.FindTxsWithUnspentOutputs(address)
+func (blockchain *Blockchain) FindSpendableOutputs(pubKeyHash []byte, amount int) (int, map[string][]int) {
+	unspentTxs := blockchain.FindTxsWithUnspentOutputs(pubKeyHash)
 	spendableOutputs := make(map[string][]int)
 	acc := 0
 
 	for _, tx := range unspentTxs {
 		txID := hex.EncodeToString(tx.ID)
 		for offset, output := range tx.Outputs {
-			if output.CanBeUnlockedWith(address) && acc < amount {
+			if output.IsLockedWithKey(pubKeyHash) && acc < amount {
 				acc = acc + output.Value
 				spendableOutputs[txID] = append(spendableOutputs[txID], offset)
 

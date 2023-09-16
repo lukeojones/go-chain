@@ -23,3 +23,4 @@ go.work
 .idea/
 /blockchain.db
 /go-chain
+/wallet.dat

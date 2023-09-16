@@ -51,7 +51,7 @@ func (cli *CLI) GetBalance(address string) {
 	defer bc.db.Close()
 
 	balance := 0
-	utxos := bc.FindUtxos(address)
+	utxos := bc.FindUtxos(ConvertBase58AddressToPubKeyHash(address))
 
 	for _, utxo := range utxos {
 		balance = balance + utxo.Value
@@ -69,6 +69,14 @@ func (cli *CLI) Send(from string, to string, amount int) {
 	fmt.Println("Success")
 }
 
+func (cli *CLI) CreateWallet() {
+	wallets, _ := NewWallets()
+	address := wallets.CreateWallet()
+	wallets.SaveToFile()
+
+	fmt.Printf("Your new address: %s\n", address)
+}
+
 func (cli *CLI) validateArgs() {
 	if len(os.Args) < 2 {
 		cli.PrintUsage()
@@ -83,6 +91,7 @@ func (cli *CLI) Run() {
 	createChainCmd := flag.NewFlagSet("createchain", flag.ExitOnError)
 	getBalanceCmd := flag.NewFlagSet("getbalance", flag.ExitOnError)
 	sendCmd := flag.NewFlagSet("send", flag.ExitOnError)
+	createWalletCmd := flag.NewFlagSet("createwallet", flag.ExitOnError)
 	createChainAddress := createChainCmd.String("address", "", "The address to send genesis block reward to")
 	getBalanceAddress := getBalanceCmd.String("address", "", "The address to check balance for")
 	sendFromAddress := sendCmd.String("from", "", "The address to send from")
@@ -107,6 +116,11 @@ func (cli *CLI) Run() {
 		}
 	case "send":
 		err := sendCmd.Parse(os.Args[2:])
+		if err != nil {
+			log.Panic(err)
+		}
+	case "createwallet":
+		err := createWalletCmd.Parse(os.Args[2:])
 		if err != nil {
 			log.Panic(err)
 		}
@@ -141,5 +155,9 @@ func (cli *CLI) Run() {
 			os.Exit(1)
 		}
 		cli.Send(*sendFromAddress, *sendToAddress, *sendAmount)
+	}
+
+	if createWalletCmd.Parsed() {
+		cli.CreateWallet()
 	}
 }
