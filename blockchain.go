@@ -46,6 +46,14 @@ func (blockchain *Blockchain) Iterator() *BlockchainIterator {
 
 func (blockchain *Blockchain) MineBlock(transactions []*Transaction) {
 	var lastHash []byte
+
+	// Verify the transaction before adding them to the block
+	for _, tx := range transactions {
+		if blockchain.VerifyTransaction(tx) != true {
+			log.Panic("ERROR: Invalid Transaction!")
+		}
+	}
+
 	err := blockchain.db.View(func(tx *bolt.Tx) error {
 		bucket := tx.Bucket([]byte(blocksBucketName))
 		lastHash = bucket.Get([]byte("l"))

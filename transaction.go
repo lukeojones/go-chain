@@ -98,8 +98,8 @@ func (tx *Transaction) TrimmedCopy() Transaction {
 
 	return Transaction{
 		ID:      tx.ID,
-		Inputs:  tx.Inputs,
-		Outputs: tx.Outputs,
+		Inputs:  inputs,
+		Outputs: outputs,
 	}
 }
 
@@ -213,11 +213,9 @@ func NewUtxoTransaction(from, to string, amount int, blockchain *Blockchain) *Tr
 		outputs = append(outputs, *NewTXOutput(available-amount, from))
 	}
 
-	tx := Transaction{
-		ID:      nil,
-		Inputs:  inputs,
-		Outputs: outputs,
-	}
-	tx.SetId()
+	tx := Transaction{ID: nil, Inputs: inputs, Outputs: outputs}
+	tx.ID = tx.Hash()
+	blockchain.SignTransaction(&tx, wallet.PrivateKey)
+
 	return &tx
 }
