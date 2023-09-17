@@ -105,6 +105,16 @@ func (tx *Transaction) TrimmedCopy() Transaction {
 
 // Verify all inputs match the mandatory signed data
 func (tx *Transaction) Verify(prevTxs map[string]Transaction) bool {
+	if tx.IsCoinbase() {
+		return true
+	}
+
+	for _, input := range tx.Inputs {
+		if prevTxs[hex.EncodeToString(input.TxOutputID)].ID == nil {
+			log.Panic("ERROR: Previous transaction is not correct")
+		}
+	}
+
 	txTrimmed := tx.TrimmedCopy()
 	curve := elliptic.P256()
 
