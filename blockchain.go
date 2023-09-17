@@ -1,6 +1,8 @@
 package main
 
 import (
+	"bytes"
+	"crypto/ecdsa"
 	"encoding/hex"
 	"errors"
 	"fmt"
@@ -222,4 +224,50 @@ func (blockchain *Blockchain) FindSpendableOutputs(pubKeyHash []byte, amount int
 	}
 
 	return acc, spendableOutputs
+}
+
+// FindTx iterates through all blocks to find the transaction with provided ID
+func (blockchain *Blockchain) FindTx(ID []byte) (Transaction, error) {
+	bci := blockchain.Iterator()
+	for {
+		block := bci.Next()
+
+		for _, tx := range block.Transactions {
+			if bytes.Compare(tx.ID, ID) == 0 {
+				return *tx, nil
+			}
+		}
+
+		if len(block.PrevBlockHash) == 0 {
+			break
+		}
+	}
+
+	return Transaction{}, errors.New("transaction not found")
+}
+
+// SignTransaction takes a transaction, finds all transactions it references and signs it
+func (blockchain *Blockchain) SignTransaction(tx *Transaction, key ecdsa.PrivateKey) {
+	prevTxs := make(map[string]Transaction)
+	for _, input := range tx.Inputs {
+		prevTx, err := blockchain.FindTx(input.TxOutputID)
+		if err != nil {
+			log.Panic(err)
+		}
+		prevTxs[hex.EncodeToString(prevTx.ID)] = prevTx
+	}
+	tx.Sign(key, prevTxs)
+}
+
+// VerifyTransaction takes a transaction, finds all transactions it references and verifies the signature
+func (blockchain *Blockchain) VerifyTransaction(tx *Transaction) bool {
+	prevTxs := make(map[string]Transaction)
+	for _, input := range tx.Inputs {
+		prevTx, err := blockchain.FindTx(input.TxOutputID)
+		if err != nil {
+			log.Panic(err)
+		}
+		prevTxs[hex.EncodeToString(prevTx.ID)] = prevTx
+	}
+	return tx.Verify(prevTxs)
 }

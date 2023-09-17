@@ -132,7 +132,7 @@ func (tx *Transaction) Verify(prevTxs map[string]Transaction) bool {
 
 		// Verify that the provided signature matches by verifying data (tx ID + pubkey)
 		// If any input doesn't have valid signature, return false for the transaction
-		pubKey := ecdsa.PublicKey{curve, &x, &y}
+		pubKey := ecdsa.PublicKey{Curve: curve, X: &x, Y: &y}
 		if ecdsa.Verify(&pubKey, txTrimmed.ID, &r, &s) == false {
 			return false
 		}
