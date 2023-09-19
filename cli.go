@@ -48,10 +48,11 @@ func (cli *CLI) PrintUsage() {
 
 func (cli *CLI) GetBalance(address string) {
 	bc := NewBlockchain(address)
+	utxo := UTXOSet{}
 	defer bc.db.Close()
 
 	balance := 0
-	utxos := bc.FindUtxos(ConvertBase58AddressToPubKeyHash(address))
+	utxos := utxo.FindUtxos(ConvertBase58AddressToPubKeyHash(address))
 
 	for _, utxo := range utxos {
 		balance = balance + utxo.Value
@@ -63,8 +64,9 @@ func (cli *CLI) GetBalance(address string) {
 func (cli *CLI) Send(from string, to string, amount int) {
 	blockchain := NewBlockchain(from)
 	defer blockchain.db.Close()
+	utxo := UTXOSet{}
 
-	tx := NewUtxoTransaction(from, to, amount, blockchain)
+	tx := NewUtxoTransaction(from, to, amount, &utxo)
 	blockchain.MineBlock([]*Transaction{tx})
 	fmt.Println("Success")
 }

@@ -184,7 +184,7 @@ func NewCoinbaseTx(recipient, data string) *Transaction {
 	return &tx
 }
 
-func NewUtxoTransaction(from, to string, amount int, blockchain *Blockchain) *Transaction {
+func NewUtxoTransaction(from, to string, amount int, utxoSet *UTXOSet) *Transaction {
 	var inputs []TxInput
 	var outputs []TxOutput
 
@@ -195,7 +195,7 @@ func NewUtxoTransaction(from, to string, amount int, blockchain *Blockchain) *Tr
 
 	wallet := wallets.GetWallet(from)
 	pubKeyHash := HashPubKey(wallet.PublicKey)
-	available, spendableOutputs := blockchain.FindSpendableOutputs(pubKeyHash, amount)
+	available, spendableOutputs := utxoSet.FindSpendableOutputs(pubKeyHash, amount)
 	fmt.Printf("Found available funds of [%d] in [%s]\n", available, from)
 	if available < amount {
 		log.Panic("ERROR Not enough funds!")
@@ -225,7 +225,7 @@ func NewUtxoTransaction(from, to string, amount int, blockchain *Blockchain) *Tr
 
 	tx := Transaction{ID: nil, Inputs: inputs, Outputs: outputs}
 	tx.ID = tx.Hash()
-	blockchain.SignTransaction(&tx, wallet.PrivateKey)
+	utxoSet.Blockchain.SignTransaction(&tx, wallet.PrivateKey)
 
 	return &tx
 }
