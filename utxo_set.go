@@ -79,3 +79,49 @@ func (us UTXOSet) FindUtxos(pubKeyHash []byte) []TxOutput {
 
 	return utxos
 }
+
+// Update Having the UTXO set means that our data (transactions) are now split into two storages:
+//
+//	actual transactions are stored in the blockchain,
+//	and unspent outputs are stored in the UTXO set.
+//
+// Such separation requires solid synchronization mechanism because we want the UTXO set to
+// always be updated and store outputs of most recent transactions
+func (us UTXOSet) Update(block *Block) {
+	db := us.Blockchain.db
+
+	db.Update(func(tx *bolt.Tx) error {
+		bucket := tx.Bucket([]byte(utxoBucketName))
+		for _, tx := range block.Transactions {
+			if tx.IsCoinbase() == false {
+				for _, input := range tx.Inputs {
+					var updatedOutputs TxOutputs
+					data := bucket.Get(input.TxOutputID)
+					outputs := DeserializeOutputs(data)
+
+					// carry over all outputs that have not been referenced by an input
+					for offset, output := range outputs.Outputs {
+						if input.TxOutputIndex != offset {
+							updatedOutputs.Outputs = append(updatedOutputs.Outputs, output)
+						}
+					}
+
+					// If there are no unspent outputs for a tx, then remove them from the utxo chainstate
+					if len(updatedOutputs.Outputs) == 0 {
+						bucket.Delete(input.TxOutputID)
+					} else {
+						bucket.Put(input.TxOutputID, updatedOutputs.Serialize())
+					}
+				}
+			}
+
+			// Now add the outputs from the latest tx (being added in this block)
+			outputsForNewTx := TxOutputs{}
+			for _, output := range tx.Outputs {
+				outputsForNewTx.Outputs = append(outputsForNewTx.Outputs, output)
+			}
+			bucket.Put(tx.ID, outputsForNewTx.Serialize())
+		}
+		return nil
+	})
+}

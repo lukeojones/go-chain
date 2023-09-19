@@ -30,12 +30,15 @@ type BlockchainIterator struct {
 func (iterator *BlockchainIterator) Next() *Block {
 	var block *Block
 	// retrieve block
-	iterator.db.View(func(tx *bolt.Tx) error {
+	err := iterator.db.View(func(tx *bolt.Tx) error {
 		bucket := tx.Bucket([]byte(blocksBucketName))
 		blockBytes := bucket.Get(iterator.currentHash)
 		block = DeserializeBlock(blockBytes)
 		return nil
 	})
+	if err != nil {
+		return nil
+	}
 	iterator.currentHash = block.PrevBlockHash
 	return block
 }
@@ -44,7 +47,7 @@ func (blockchain *Blockchain) Iterator() *BlockchainIterator {
 	return &BlockchainIterator{blockchain.tip, blockchain.db}
 }
 
-func (blockchain *Blockchain) MineBlock(transactions []*Transaction) {
+func (blockchain *Blockchain) MineBlock(transactions []*Transaction) *Block {
 	var lastHash []byte
 
 	// Verify the transaction before adding them to the block
@@ -78,6 +81,8 @@ func (blockchain *Blockchain) MineBlock(transactions []*Transaction) {
 		blockchain.tip = newBlock.Hash
 		return nil
 	})
+
+	return newBlock
 }
 
 func dbExists() bool {
@@ -241,41 +246,6 @@ func (blockchain *Blockchain) BuildTransactionUtxoMap() map[string]TxOutputs {
 	}
 	return utxoMap
 }
-
-//func (blockchain *Blockchain) FindUtxos(pubKeyHash []byte) []TxOutput {
-//	txsWithUtxos := blockchain.FindTxsWithUnspentOutputs(pubKeyHash)
-//	var utxos []TxOutput
-//	for _, tx := range txsWithUtxos {
-//		for _, txo := range tx.Outputs {
-//			if txo.IsLockedWithKey(pubKeyHash) {
-//				utxos = append(utxos, txo)
-//			}
-//		}
-//	}
-//	return utxos
-//}
-
-//func (blockchain *Blockchain) FindSpendableOutputs(pubKeyHash []byte, amount int) (int, map[string][]int) {
-//	unspentTxs := blockchain.FindTxsWithUnspentOutputs(pubKeyHash)
-//	spendableOutputs := make(map[string][]int)
-//	acc := 0
-//
-//	for _, tx := range unspentTxs {
-//		txID := hex.EncodeToString(tx.ID)
-//		for offset, output := range tx.Outputs {
-//			if output.IsLockedWithKey(pubKeyHash) && acc < amount {
-//				acc = acc + output.Value
-//				spendableOutputs[txID] = append(spendableOutputs[txID], offset)
-//
-//				if acc >= amount {
-//					return acc, spendableOutputs
-//				}
-//			}
-//		}
-//	}
-//
-//	return acc, spendableOutputs
-//}
 
 // FindTx iterates through all blocks to find the transaction with provided ID
 func (blockchain *Blockchain) FindTx(ID []byte) (Transaction, error) {

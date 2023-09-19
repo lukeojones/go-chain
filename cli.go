@@ -36,7 +36,10 @@ func (cli *CLI) PrintChain() {
 func (cli *CLI) CreateChain(address string) {
 	println("1. Creating Chain")
 	blockchain := CreateBlockchain(address)
-	blockchain.db.Close()
+	defer blockchain.db.Close()
+
+	utxoSet := UTXOSet{blockchain}
+	utxoSet.Reindex()
 	fmt.Println("Blockchain Created")
 }
 
@@ -48,7 +51,7 @@ func (cli *CLI) PrintUsage() {
 
 func (cli *CLI) GetBalance(address string) {
 	bc := NewBlockchain(address)
-	utxo := UTXOSet{}
+	utxo := UTXOSet{bc}
 	defer bc.db.Close()
 
 	balance := 0
@@ -64,10 +67,12 @@ func (cli *CLI) GetBalance(address string) {
 func (cli *CLI) Send(from string, to string, amount int) {
 	blockchain := NewBlockchain(from)
 	defer blockchain.db.Close()
-	utxo := UTXOSet{}
+	utxoSet := UTXOSet{blockchain}
 
-	tx := NewUtxoTransaction(from, to, amount, &utxo)
-	blockchain.MineBlock([]*Transaction{tx})
+	tx := NewUtxoTransaction(from, to, amount, &utxoSet)
+	coinbaseTx := NewCoinbaseTx(from, "")
+	block := blockchain.MineBlock([]*Transaction{coinbaseTx, tx})
+	utxoSet.Update(block)
 	fmt.Println("Success")
 }
 
