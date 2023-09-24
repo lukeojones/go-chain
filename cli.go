@@ -19,13 +19,15 @@ func (cli *CLI) PrintChain() {
 	it := bc.Iterator()
 	for {
 		block := it.Next()
-		fmt.Printf("Prev: %x\n", block.PrevBlockHash)
-		fmt.Printf("Time: %d\n", block.Timestamp)
-		fmt.Printf("Data: %s\n", block.Transactions)
-		fmt.Printf("Hash: %x\n", block.Hash)
+
+		fmt.Printf("============ Block %x ============\n", block.Hash)
+		fmt.Printf("Prev. block: %x\n", block.PrevBlockHash)
 		pow := NewProofOfWork(block)
-		fmt.Printf("PoWo: %s\n", strconv.FormatBool(pow.Validate()))
-		fmt.Println()
+		fmt.Printf("PoW: %s\n\n", strconv.FormatBool(pow.Validate()))
+		for _, tx := range block.Transactions {
+			fmt.Println(tx)
+		}
+		fmt.Printf("\n\n")
 
 		if len(block.PrevBlockHash) == 0 {
 			break
