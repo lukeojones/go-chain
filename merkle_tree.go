@@ -57,7 +57,5 @@ func NewMerkleTree(data [][]byte) *MerkleTree {
 		}
 		nodes = level
 	}
-
-	// There should only be one node here anyway.
 	return &MerkleTree{Root: &nodes[0]}
 }

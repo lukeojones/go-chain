@@ -2,7 +2,6 @@ package main
 
 import (
 	"bytes"
-	"crypto/sha256"
 	"encoding/gob"
 	"fmt"
 	"time"
@@ -31,12 +30,12 @@ func (block *Block) Serialize() []byte {
 // The final hash is the hash of the concatenated transaction hashes (IDs).
 // NB: Bitcoin is more sophisticated than this and uses Merkle Trees.
 func (block *Block) HashTransactions() []byte {
-	var txHashes [][]byte
+	var transactions [][]byte
 	for _, tx := range block.Transactions {
-		txHashes = append(txHashes, tx.ID)
+		transactions = append(transactions, tx.Serialize())
 	}
-	combinedTxHash := sha256.Sum256(bytes.Join(txHashes, []byte{}))
-	return combinedTxHash[:]
+	mTree := NewMerkleTree(transactions)
+	return mTree.Root.Data
 }
 
 func DeserializeBlock(data []byte) *Block {
