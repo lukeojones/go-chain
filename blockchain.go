@@ -184,28 +184,26 @@ func CreateBlockchain(address string, nodeID string) *Blockchain {
 	return &Blockchain{tip, db}
 }
 
-func NewBlockchain(address string, nodeID string) *Blockchain {
-	var tip []byte
+func NewBlockchain(nodeID string) *Blockchain {
 	dbFile := fmt.Sprintf(dbFile, nodeID)
 	if dbExists(dbFile) == false {
 		fmt.Println("No existing blockchain found. Create one first.")
 		os.Exit(1)
 	}
-	db, _ := bolt.Open(dbFile, 0600, nil)
-	db.Update(func(tx *bolt.Tx) error {
+
+	var tip []byte
+	db, err := bolt.Open(dbFile, 0600, nil)
+	if err != nil {
+		log.Panic(err)
+	}
+	err = db.Update(func(tx *bolt.Tx) error {
 		bucket := tx.Bucket([]byte(blocksBucketName))
-		if bucket != nil {
-			tip = bucket.Get([]byte("l"))
-		} else {
-			coinbaseTx := NewCoinbaseTx(address, "Hello Blockchain!")
-			genesisBlock := NewGenesisBlock(coinbaseTx)
-			bucket, _ := tx.CreateBucket([]byte(blocksBucketName))
-			bucket.Put(genesisBlock.Hash, genesisBlock.Serialize())
-			bucket.Put([]byte("l"), genesisBlock.Hash)
-			tip = genesisBlock.Hash
-		}
+		tip = bucket.Get([]byte("l"))
 		return nil
 	})
+	if err != nil {
+		log.Panic(err)
+	}
 	return &Blockchain{tip, db}
 }
 
