@@ -17,7 +17,7 @@ import (
 
 const addressGenerationVersion = byte(0x00)
 const addressChecksumLen = 4
-const walletFile = "wallet.dat"
+const walletFile = "wallet_%s.dat"
 
 type Wallet struct {
 	PrivateKey ecdsa.PrivateKey
@@ -33,7 +33,8 @@ type Wallets struct {
 	WalletDatas map[string]*WalletData
 }
 
-func (ws *Wallets) LoadFromFile() error {
+func (ws *Wallets) LoadFromFile(nodeID string) error {
+	walletFile := fmt.Sprintf(walletFile, nodeID)
 	if _, err := os.Stat(walletFile); os.IsNotExist(err) {
 		return err
 	}
@@ -54,10 +55,18 @@ func (ws *Wallets) LoadFromFile() error {
 	return nil
 }
 
+func (ws Wallets) CreateWallet() string {
+	walletData := NewWalletData()
+	address := fmt.Sprintf("%s", walletData.GetWallet().GetAddress())
+	ws.WalletDatas[address] = walletData
+	return address
+}
+
 // SaveToFile saves wallets to a file
-func (ws Wallets) SaveToFile() {
+func (ws Wallets) SaveToFile(nodeID string) {
 	var content bytes.Buffer
-	//gob.Register(elliptic.P256())
+	walletFile := fmt.Sprintf(walletFile, nodeID)
+
 	encoder := gob.NewEncoder(&content)
 	if err := encoder.Encode(ws); err != nil {
 		log.Panic(err)
@@ -73,18 +82,11 @@ func (ws Wallets) GetWallet(address string) Wallet {
 	return *walletData.GetWallet()
 }
 
-func (ws Wallets) CreateWallet() string {
-	walletData := NewWalletData()
-	address := fmt.Sprintf("%s", walletData.GetWallet().GetAddress())
-	ws.WalletDatas[address] = walletData
-	return address
-}
-
-func NewWallets() (*Wallets, error) {
+func NewWallets(nodeID string) (*Wallets, error) {
 	wallets := Wallets{}
 	wallets.WalletDatas = make(map[string]*WalletData)
 
-	err := wallets.LoadFromFile()
+	err := wallets.LoadFromFile(nodeID)
 	return &wallets, err
 }
 

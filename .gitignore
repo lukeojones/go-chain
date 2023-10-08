@@ -21,6 +21,6 @@
 go.work
 
 .idea/
-/blockchain.db
+*.db
 /go-chain
-/wallet.dat
+*.dat

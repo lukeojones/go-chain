@@ -364,6 +364,10 @@ func (blockchain *Blockchain) SignTransaction(tx *Transaction, key ecdsa.Private
 
 // VerifyTransaction takes a transaction, finds all transactions it references and verifies the signature
 func (blockchain *Blockchain) VerifyTransaction(tx *Transaction) bool {
+	if tx.IsCoinbase() {
+		return true
+	}
+
 	prevTxs := make(map[string]Transaction)
 	for _, input := range tx.Inputs {
 		prevTx, err := blockchain.FindTx(input.TxOutputID)

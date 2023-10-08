@@ -3,6 +3,7 @@ package main
 import (
 	"encoding/hex"
 	"github.com/boltdb/bolt"
+	"log"
 )
 
 const utxoBucketName = "chainstate"
@@ -38,7 +39,7 @@ func (us UTXOSet) FindSpendableOutputs(pubKeyHash []byte, amount int) (int, map[
 	acc := 0
 
 	db := us.Blockchain.db
-	db.View(func(tx *bolt.Tx) error {
+	err := db.View(func(tx *bolt.Tx) error {
 		bucket := tx.Bucket([]byte(utxoBucketName))
 		cursor := bucket.Cursor()
 
@@ -55,6 +56,9 @@ func (us UTXOSet) FindSpendableOutputs(pubKeyHash []byte, amount int) (int, map[
 		}
 		return nil
 	})
+	if err != nil {
+		log.Panic(err)
+	}
 
 	return acc, spendableOutputs
 }
