@@ -203,7 +203,7 @@ func NewUtxoTransaction(wallet *Wallet, to string, amount int, utxoSet *UTXOSet)
 	pubKeyHash := HashPubKey(wallet.PublicKey)
 	available, spendableOutputs := utxoSet.FindSpendableOutputs(pubKeyHash, amount)
 	from := fmt.Sprintf("%s", wallet.GetAddress())
-	fmt.Printf("Found available funds of [%d] in [%s]\n", available, from)
+	fmt.Printf("Found the required [%d] coins in [%s]\n", available, from)
 	if available < amount {
 		log.Panic("ERROR Not enough funds!")
 	}

@@ -1,6 +1,6 @@
 package main
 
-const blockSubsidy = 50
+const blockSubsidy = 10
 
 func main() {
 	cli := CLI{}

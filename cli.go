@@ -70,7 +70,7 @@ func (cli *CLI) Run() {
 	sendToAddress := sendCmd.String("to", "", "The address to send to")
 	sendAmount := sendCmd.Int("amount", 0, "The amount to send")
 	sendMine := sendCmd.Bool("mine", false, "Mine immediately on the same node.")
-	startNodeMiner := startNodeCmd.String("miner", " ", "Enable mining mode and send reward to ADDRESS")
+	startNodeMiner := startNodeCmd.String("miner", "", "Enable mining mode and send reward to ADDRESS")
 
 	switch os.Args[1] {
 	case "printchain":

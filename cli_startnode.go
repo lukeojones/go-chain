@@ -7,5 +7,5 @@ func (cli *CLI) startNode(nodeID, minerAddress string) {
 	if len(minerAddress) > 0 {
 		fmt.Printf("Mining is on. Address to receive rewards: %s\n", minerAddress)
 	}
-	//todo - StartServer
+	StartServer(nodeID, minerAddress)
 }

@@ -65,7 +65,7 @@ func (us UTXOSet) FindSpendableOutputs(pubKeyHash []byte, amount int) (int, map[
 func (us UTXOSet) FindUtxos(pubKeyHash []byte) []TxOutput {
 	var utxos []TxOutput
 	db := us.Blockchain.db
-	db.View(func(tx *bolt.Tx) error {
+	err := db.View(func(tx *bolt.Tx) error {
 		bucket := tx.Bucket([]byte(utxoBucketName))
 		cursor := bucket.Cursor()
 
@@ -80,7 +80,9 @@ func (us UTXOSet) FindUtxos(pubKeyHash []byte) []TxOutput {
 		}
 		return nil
 	})
-
+	if err != nil {
+		log.Panic(err)
+	}
 	return utxos
 }
 
